@@ -12,7 +12,9 @@ class zcl_mpc definition public.
       conv_si_value,
       create_popup,
       set_colum_setting,
-      show_popup.
+      set_alv_handler,
+      show_popup,
+      on_link_click for event link_click of cl_salv_events_table importing row column.
 
     types: begin of ty_column_info,
              column_id   type lvc_fname,
@@ -21,6 +23,10 @@ class zcl_mpc definition public.
              long_text   type scrtext_l,
              visible     type abap_bool,
            end of ty_column_info.
+
+    constants: gc_mdoc_col  type lvc_fname value 'MDOCM',
+               gc_equnr_col type lvc_fname value 'EQUNR',
+               gc_point_col type lvc_fname value 'POINT'.
 
     data: go_alv         type ref to cl_salv_table,
           gv_equnr       type equnr,
@@ -41,6 +47,7 @@ CLASS ZCL_MPC IMPLEMENTATION.
   method constructor.
     me->create_popup( ).
     me->set_colum_setting( ).
+    me->set_alv_handler( ).
   endmethod.
 
 
@@ -104,6 +111,33 @@ CLASS ZCL_MPC IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_MPC->ON_LINK_CLICK
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] ROW                            LIKE
+* | [--->] COLUMN                         LIKE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method on_link_click.
+    " Read row
+    read table gt_empc into data(ls_empc) index row.
+
+    case column.
+      when gc_mdoc_col.
+        "Display measuring document
+        set parameter id: 'IMD' field ls_empc-mdocm.
+        call transaction 'IK13' and skip first screen.
+      when gc_equnr_col.
+        "Display equimpent
+        set parameter id: 'EQN' field ls_empc-equnr.
+        call transaction 'IE03' and skip first screen.
+      when gc_point_col.
+        "Display measuring point/counter.
+        set parameter id: 'IPT' field ls_empc-point.
+        call transaction 'IK03' and skip first screen.
+    endcase.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Private Method ZCL_MPC->SELECT_DATA
 * +-------------------------------------------------------------------------------------------------+
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -112,6 +146,32 @@ CLASS ZCL_MPC IMPLEMENTATION.
     select * from zmes_pointc_v
       where equnr = @gv_equnr order by point, idate, itime
     into corresponding fields of table @gt_empc.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_MPC->SET_ALV_HANDLER
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method set_alv_handler.
+    " Set column hostspot
+    data: lt_hotspot_col type table of lvc_fname,
+          lv_col_name    type lvc_fname.
+    lt_hotspot_col = value #( ( gc_equnr_col ) ( gc_mdoc_col ) ( gc_point_col ) ).
+    try.
+        loop at lt_hotspot_col into lv_col_name.
+          data(lo_md_col) = cast cl_salv_column_table(
+                  go_alv->get_columns( )->get_column( lv_col_name ) ).
+
+          lo_md_col->set_cell_type( if_salv_c_cell_type=>hotspot ).
+        endloop.
+      catch cx_salv_not_found into data(lx_not_found).
+        message lx_not_found->get_text( ) type 'E'.
+    endtry.
+
+    " Register handler
+    data(lo_event) = go_alv->get_event( ).
+    set handler me->on_link_click for lo_event.
   endmethod.
 
 
