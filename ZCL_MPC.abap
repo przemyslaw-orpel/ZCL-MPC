@@ -1,11 +1,26 @@
-class zcl_mpc definition public.
+class zcl_mpc definition
+  public
+  create public .
+
   public section.
-    class-data:
-     screen type ref to zcl_mpc.
-    class-methods:
-      display_popup importing i_equnr type equnr optional.
-    methods:
-      constructor.
+
+    class-data screen type ref to zcl_mpc .
+
+    class-methods display_popup
+      importing
+        i_equnr type equnr optional .
+    class-methods create_mdoc
+      importing
+        mpoint         type imrg-point
+        read_date      type imrg-idate
+        read_time      type imrg-itime
+        short_text     type imrg-mdtxt
+        recorded_value type rimr0-recdc
+        reader         type sy-uname
+      exporting
+        mdocm          type imrg-mdocm
+        error          type sy-subrc.
+    methods constructor .
   private section.
     methods:
       select_data,
@@ -63,6 +78,75 @@ CLASS ZCL_MPC IMPLEMENTATION.
       zcl_unit=>conversion_si( exporting i_value = <ls_row>-mrmax i_msehi = <ls_row>-mrngu importing e_menge = <ls_row>-cmrmax ).
       zcl_unit=>conversion_si( exporting i_value = <ls_row>-desir i_msehi = <ls_row>-mrngu importing e_menge = <ls_row>-cdesir ).
     endloop.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZCL_MPC=>CREATE_MDOC
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] MPOINT                         TYPE        IMRG-POINT
+* | [--->] READ_DATE                      TYPE        IMRG-IDATE
+* | [--->] READ_TIME                      TYPE        IMRG-ITIME
+* | [--->] SHORT_TEXT                     TYPE        IMRG-MDTXT
+* | [--->] RECORDED_VALUE                 TYPE        RIMR0-RECDC
+* | [--->] READER                         TYPE        SY-UNAME
+* | [<---] MDOCM                          TYPE        IMRG-MDOCM
+* | [<---] ERROR                          TYPE        SY-SUBRC
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method create_mdoc.
+    call function 'MEASUREM_DOCUM_RFC_SINGLE_001'
+      exporting
+        measurement_point    = mpoint
+        secondary_index      = ' '
+        reading_date         = read_date
+        reading_time         = read_time
+        short_text           = short_text
+        reader               = reader
+        origin_indicator     = 'A'
+        reading_after_action = ' '
+        recorded_value       = recorded_value
+        difference_reading   = ' '
+        code_catalogue       = ' '
+        code_group           = ' '
+        valuation_code       = ' '
+        code_version         = ' '
+        user_data            = ' '
+        check_custom_duprec  = ' '
+        with_dialog_screen   = ' '
+        prepare_update       = 'X'
+        commit_work          = 'X'
+        wait_after_commit    = 'X'
+        create_notification  = ' '
+        notification_type    = 'M2'
+        notification_prio    = ' '
+      importing
+        measurement_document = mdocm
+      exceptions
+        no_authority         = 1
+        point_not_found      = 2
+        index_not_unique     = 3
+        type_not_found       = 4
+        point_locked         = 5
+        point_inactive       = 6
+        timestamp_in_future  = 7
+        timestamp_duprec     = 8
+        unit_unfit           = 9
+        value_not_fltp       = 10
+        value_overflow       = 11
+        value_unfit          = 12
+        value_missing        = 13
+        code_not_found       = 14
+        notif_type_not_found = 15
+        notif_prio_not_found = 16
+        notif_gener_problem  = 17
+        update_failed        = 18
+        invalid_time         = 19
+        invalid_date         = 20
+        others               = 21.
+    if sy-subrc <> 0.
+      error = sy-subrc.
+    endif.
+
   endmethod.
 
 

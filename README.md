@@ -3,6 +3,7 @@
 SAP ABAP Class for measuring point/counter
 ### Static Methods:
 +  display_popup - display measuring documents for equimpent salv table popup.
++  create_mdoc - create measuring document.
 
 ## Tabels
 ### ZMES_POINTC_V - Equimpent measuring point/counter view
